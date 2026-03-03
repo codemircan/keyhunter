@@ -1,31 +1,192 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KeyHunter Pro</title>
     <style>
-        body { width: 400px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 15px; background: #f9f9f9; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .key-item { 
-            background: white; border-radius: 5px; padding: 10px; margin-bottom: 10px; 
-            border-left: 5px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --high-conf: #ef4444;
+            --low-conf: #f59e0b;
         }
-        .conf-high { border-left-color: #d32f2f; } /* Kritik - Kırmızı */
-        .conf-low { border-left-color: #fbc02d; }  /* Uyarı - Sarı */
-        .label { font-weight: bold; font-size: 12px; color: #555; }
-        .value { word-break: break-all; font-family: monospace; background: #eee; padding: 2px 4px; display: block; margin-top: 5px; }
-        .source { font-size: 10px; color: #888; margin-top: 5px; }
-        button { background: #1a73e8; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 4px; width: 100%; }
-        #downloadBtn { background: #34a853; margin-top: 10px; display: none; }
+
+        body {
+            width: 450px;
+            margin: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+        }
+
+        .container { padding: 16px; }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-left { display: flex; align-items: center; gap: 10px; }
+        .header h1 { font-size: 18px; margin: 0; color: var(--primary); }
+        .stats { font-size: 12px; font-weight: 600; background: var(--border); padding: 4px 8px; border-radius: 12px; }
+
+        .settings-toggle { cursor: pointer; color: var(--text-muted); transition: color 0.2s; }
+        .settings-toggle:hover { color: var(--primary); }
+
+        .view { display: block; }
+        .hidden { display: none !important; }
+
+        .controls { display: flex; gap: 8px; margin-bottom: 20px; }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        #scanBtn { background: var(--primary); color: white; }
+        #scanBtn:hover { background: var(--primary-hover); }
+        #scanBtn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        #downloadBtn { background: #10b981; color: white; display: none; }
+        #downloadBtn:hover { background: #059669; }
+
+        .findings-list { display: flex; flex-direction: column; gap: 12px; }
+
+        .finding-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            padding: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .finding-card.conf-high { border-left: 4px solid var(--high-conf); }
+        .finding-card.conf-low { border-left: 4px solid var(--low-conf); }
+
+        .finding-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .finding-type { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
+        .finding-category { font-size: 10px; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
+
+        .finding-value {
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+            background: #f1f5f9;
+            padding: 8px;
+            border-radius: 4px;
+            word-break: break-all;
+            margin: 8px 0;
+            border: 1px solid #e2e8f0;
+        }
+
+        .finding-meta { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+        .finding-meta span { font-weight: 600; color: var(--text-main); }
+
+        .snippet {
+            font-size: 11px;
+            color: #475569;
+            background: #fffbeb;
+            padding: 6px;
+            border-radius: 4px;
+            margin-top: 8px;
+            border: 1px dashed #fcd34d;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+        .empty-state svg { width: 48px; height: 48px; margin-bottom: 12px; color: var(--border); }
+
+        /* Tabs/Categories UI */
+        .filters {
+            display: flex;
+            overflow-x: auto;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding-bottom: 4px;
+        }
+        .filter-chip {
+            white-space: nowrap;
+            font-size: 11px;
+            padding: 4px 10px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            cursor: pointer;
+        }
+        .filter-chip.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <strong>Secret Scanner Pro</strong>
-        <span id="count">0 bulgu</span>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1>KeyHunter Pro</h1>
+                <div id="stats" class="stats">0 findings</div>
+            </div>
+            <div id="settingsToggle" class="settings-toggle">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </div>
+        </div>
+
+        <div id="mainView" class="view">
+            <div class="controls">
+            <button id="scanBtn">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                Scan Resources
+            </button>
+            <button id="downloadBtn">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Export
+            </button>
+        </div>
+
+        <div id="filterContainer" class="filters" style="display: none;">
+            <div class="filter-chip active" data-cat="all">All</div>
+        </div>
+
+            <div id="results" class="findings-list">
+                <div class="empty-state">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <p>Click "Scan Resources" to start searching for secrets on this page.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="settingsView" class="view hidden">
+            <div style="margin-bottom: 16px;">
+                <h2 style="font-size: 14px; margin-bottom: 8px;">Add Custom Pattern</h2>
+                <input type="text" id="customName" placeholder="Pattern Name" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                <input type="text" id="customRegex" placeholder="Regex Pattern" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                <button id="addCustomBtn" style="background: var(--primary); color: white;">Add Pattern</button>
+            </div>
+            <div id="customPatternsList">
+                <!-- Custom patterns will be listed here -->
+            </div>
+        </div>
     </div>
-    <button id="scanBtn">Sayfayı ve JS Dosyalarını Tara</button>
-    <button id="downloadBtn">Sonuçları İndir (.json)</button>
-    <div id="results" style="margin-top: 15px;"></div>
     <script src="popup.js"></script>
 </body>
 </html>
