@@ -1,15 +1,20 @@
 {
   "manifest_version": 3,
   "name": "KeyHunter: Professional Secret Scanner",
-  "version": "1.0",
-  "description": "JS dosyalarındaki API anahtarlarını ve gizli tokenları avlar.",
+  "version": "1.1",
+  "description": "Hunts for API keys and secret tokens in JS files, HTML, and network requests.",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "storage",
+    "webRequest"
   ],
   "host_permissions": [
     "<all_urls>"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "web_accessible_resources": [
     {
       "resources": [
